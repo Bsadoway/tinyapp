@@ -4,7 +4,9 @@ const bodyParser = require("body-parser");
 
 
 let app = express();
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
 app.set('view engine', 'ejs');
 
 var urlDatabase = {
@@ -54,6 +56,14 @@ app.post("/urls", (request, response) => {
   response.redirect(`/urls/${shortUrl}`);
 });
 
+app.post('/urls/:id/delete', (request, response) => {
+  const id = request.params.id;
+  delete urlDatabase[id];
+  response.redirect('/urls');
+
+
+});
+
 app.get("/hello", (request, response) => {
   response.end("<html><body>Hello <b>World</b></body></html>\n");
 });
@@ -63,6 +73,6 @@ app.listen(PORT, () => {
 });
 
 
-function generateRandomString(){
+function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
 }
