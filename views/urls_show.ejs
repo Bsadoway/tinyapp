@@ -9,7 +9,10 @@
       <% include ./partials/__header %>
     </header>
 
-    <h2>Shortened URL</h2>
-    <p><%= shortUrl + ' ' + fullUrl %> </p>
+    <h2>Shortened URL: <%= shortUrl %></h2>
+    <form style="display:inline" method="POST" action="/urls/<%= shortUrl %>/update">
+      <input name="new_URL" value="<%= fullUrl %>">
+      <button>Update</button>
+    </form>
   </body>
 </html>

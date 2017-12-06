@@ -1,27 +1,28 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>TinyApp</title>
-  </head>
 
-  <body>
+<head>
+  <title>TinyApp</title>
+</head>
 
-    <header>
-      <% include ./partials/__header %>
-    </header>
+<body>
 
-    <h2>TINY URLS</h2>
-    <ul>
-      <% for(let url in urls) { %>
-        <li>
-          <%= urls[url] %>
-          <a href="/urls/<%= url %>">Link</a>
-          <form style="display:inline" method="POST" action="/urls/<%= url %>/delete">
-            <button>Delete</button>
-          </form>
-        </li>
-      <% } %>
-    </ul>
-  </body>
+  <header>
+    <% include ./partials/__header %>
+  </header>
+
+  <h2>TINY URLS</h2>
+  <% for(let url in urls) { %>
+    <div>
+      <%= url %>
+      ------->
+      <%= urls[url] %>
+        <a href="/urls/<%= url %>">Edit</a>
+        <form style="display:inline" method="POST" action="/urls/<%= url %>/delete">
+          <button>Delete</button>
+        </form>
+    </div>
+    <% } %>
+</body>
+
 </html>

@@ -57,15 +57,17 @@ app.post("/urls", (request, response) => {
 });
 
 app.post('/urls/:id/delete', (request, response) => {
+  //TODO add error checking
   const id = request.params.id;
   delete urlDatabase[id];
   response.redirect('/urls');
-
-
 });
 
-app.get("/hello", (request, response) => {
-  response.end("<html><body>Hello <b>World</b></body></html>\n");
+
+app.post('/urls/:id/update', (request, response) => {
+  const id = request.params.id;
+  urlDatabase[id] = request.body.new_URL;
+  response.redirect('/urls');
 });
 
 app.listen(PORT, () => {
