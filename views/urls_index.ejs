@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TinyApp</title>
+  </head>
+
+  <body>
+
+    <header>
+      <% include ./partials/__header %>
+    </header>
+
+    <h2>TINY URLS</h2>
+    <ul>
+      <% for(let url in urls) { %>
+        <li>
+          <%= urls[url] %>
+          <a href="/urls/<%= url %>">Link</a>
+        </li>
+      <% } %>
+    </ul>
+  </body>
+</html>
