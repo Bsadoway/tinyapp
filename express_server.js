@@ -17,9 +17,17 @@ const urlDatabase = {
 };
 
 const users = {
-
-};
-
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple"
+  },
+ "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher"
+  }
+}
 
 // GET Handlers
 // ---------------------------------------------------------------
@@ -57,7 +65,7 @@ app.get('/register', (request, response) => {
     urls: urlDatabase,
     user: users[request.cookies.userID]
   };
-  console.log(varTemplates);
+  
   response.render('urls_register', varTemplates);
 })
 
@@ -106,10 +114,10 @@ app.post('/login', (request, response) => {
   const password = request.body.password;
 
   if(checkEmail(email) && checkPassword(password)){
-    response.cookie('userID', request.body.userID);
+    response.cookie('userID', getUserIDFromEmail(email));
     response.redirect('/');
   } else {
-    response.statusCode= 403;
+    response.statusCode = 403;
     response.send("Email and/or password do not match");
   }
 });
@@ -169,6 +177,15 @@ app.listen(PORT, () => {
 
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
+}
+
+function getUserIDFromEmail(email){
+  for (let user in users) {
+    if (users[user].email === email) {
+      return user;
+    }
+  }
+  return false;
 }
 
 function checkPassword(password){

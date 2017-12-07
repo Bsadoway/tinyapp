@@ -3,6 +3,11 @@
 
 <% if(user) {%>
   <p><%= user.email %></p>
+  <form method="post" action="/logout">
+    <button>Logout</button>
+  </form>
 <% } else { %>
+  <a href='/login'> Login </a>
+  &nbsp;&nbsp;&nbsp;
   <a href='/register'> Register </a>
 <% } %>
