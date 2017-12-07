@@ -18,7 +18,11 @@ var urlDatabase = {
 
 
 app.get('/', (request, response) => {
-  response.end("Hello");
+  if(request.cookies['username']){
+    response.redirect('/urls');
+  } else {
+    response.redirect('/login');
+  }
 });
 
 app.get('/urls', (request, response) => {
@@ -29,12 +33,20 @@ app.get('/urls', (request, response) => {
   response.render('urls_index', varTemplates);
 });
 
+app.get('/login', (request, response) => {
+  if(request.cookies['username']){
+    response.redirect('/urls');
+  } else {
+    response.render('urls_login');
+  }
+});
+
 app.get('/urls.json', (request, response) => {
   response.json(urlDatabase);
 });
 
-app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+app.get("/urls/new", (request, response) => {
+  response.render("urls_new");
 });
 
 app.get('/urls/:id', (request, response) => {
