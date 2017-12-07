@@ -1,14 +1,8 @@
 
 <h1> TINY URL SHORTENER </h1>
-<% if(username) {%>
-  <p><%= username %></p>
-  <form method="post" action="/logout">
-    <button>Logout</button>
-  </form>
-<% } else { %>  
-  <form method="post" action="/login">
-    <label for='username'>Username:</label>
-    <input id='username' name='username'>
-    <button>Submit</button>
-  </form>
+
+<% if(user) {%>
+  <p><%= user.email %></p>
+<% } else { %>
+  <a href='/register'> Register </a>
 <% } %>

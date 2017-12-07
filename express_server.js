@@ -11,14 +11,21 @@ app.use(bodyParser.urlencoded({
 app.use(cookieParser());
 app.set('view engine', 'ejs');
 
-var urlDatabase = {
+const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
 
+};
+
+
+// GET Handlers
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 app.get('/', (request, response) => {
-  if(request.cookies['username']){
+  if (users[request.cookies.userID]) {
     response.redirect('/urls');
   } else {
     response.redirect('/login');
@@ -28,25 +35,42 @@ app.get('/', (request, response) => {
 app.get('/urls', (request, response) => {
   let varTemplates = {
     urls: urlDatabase,
-    username: request.cookies["username"]
+    user: users[request.cookies.userID]
   };
   response.render('urls_index', varTemplates);
 });
 
 app.get('/login', (request, response) => {
-  if(request.cookies['username']){
+  if (users[request.cookies.userID]) {
     response.redirect('/urls');
   } else {
-    response.render('urls_login');
+    let varTemplates = {
+      urls: urlDatabase,
+      user: users[request.cookies.userID]
+    };
+    response.render('urls_login', varTemplates);
   }
 });
+
+app.get('/register', (request, response) => {
+  let varTemplates = {
+    urls: urlDatabase,
+    user: users[request.cookies.userID]
+  };
+  console.log(varTemplates);
+  response.render('urls_register', varTemplates);
+})
 
 app.get('/urls.json', (request, response) => {
   response.json(urlDatabase);
 });
 
 app.get("/urls/new", (request, response) => {
-  response.render("urls_new");
+  let varTemplates = {
+    urls: urlDatabase,
+    user: users[request.cookies.userID]
+  };
+  response.render("urls_new", varTemplates);
 });
 
 app.get('/urls/:id', (request, response) => {
@@ -54,7 +78,7 @@ app.get('/urls/:id', (request, response) => {
   let varTemplates = {
     fullUrl: urlDatabase[request.params.id],
     shortUrl: request.params.id,
-    username: request.cookies["username"]
+    user: users[request.cookies.userID]
   };
   response.render('urls_show', varTemplates);
 });
@@ -63,8 +87,12 @@ app.get("/u/:shortURL", (request, response) => {
   let longURL = urlDatabase[request.params.shortURL];
   response.redirect(longURL);
 });
+// ---------------------------------------------------------------
 
 
+//POST Handlers
+// ---------------------------------------------------------------
+// ---------------------------------------------------------------
 app.post("/urls", (request, response) => {
   //TODO add error checking for invalid shortURL
   let shortUrl = generateRandomString();
@@ -74,12 +102,20 @@ app.post("/urls", (request, response) => {
 });
 
 app.post('/login', (request, response) => {
-  response.cookie('username',request.body.username);
-  response.redirect('/urls');
+  const email = request.body.email;
+  const password = request.body.password;
+
+  if(checkEmail(email) && checkPassword(password)){
+    response.cookie('userID', request.body.userID);
+    response.redirect('/');
+  } else {
+    response.statusCode= 403;
+    response.send("Email and/or password do not match");
+  }
 });
 
 app.post('/logout', (request, response) => {
-  response.clearCookie('username');
+  response.clearCookie('userID');
   response.redirect('/urls');
 });
 
@@ -96,6 +132,34 @@ app.post('/urls/:id/delete', (request, response) => {
   response.redirect('/urls');
 });
 
+app.post('/register', (request, response) => {
+  const userID = generateRandomString();
+  const email = request.body.email;
+  const password = request.body.password;
+
+  if (!email || !password) {
+    response.statusCode = 400;
+    response.send("Invalid email or password");
+    return;
+  }
+  if (checkEmail(email)) {
+    response.statusCode = 400;
+    response.send("Email already exists, did you forget your password?");
+    return;
+  }
+
+  const user = {
+    userID: userID,
+    email: email,
+    password: password
+  };
+  users[userID] = user;
+
+  response.cookie('userID', userID);
+  response.redirect('/urls');
+
+});
+// ---------------------------------------------------------------
 
 
 app.listen(PORT, () => {
@@ -105,4 +169,22 @@ app.listen(PORT, () => {
 
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
+}
+
+function checkPassword(password){
+  for (let user in users) {
+    if (users[user].password === password) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkEmail(email) {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
 }
