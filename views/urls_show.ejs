@@ -4,14 +4,14 @@
     <title>TinyApp</title>
   </head>
 
-  <body>
+  <body style="font-size:20px; padding:50px;">
     <header>
       <% include ./partials/__header %>
     </header>
 
-    <h2>Shortened URL: <%= shortUrl %></h2>
-    <form style="display:inline" method="POST" action="/urls/<%= shortUrl %>/update">
-      <input name="new_URL" value="<%= fullUrl %>">
+    <h2>Shortened URL: <%= url.id %></h2>
+    <form style="display:inline" method="POST" action="/urls/<%= url.id %>/update">
+      <input name="new_URL" value="<%= url.fullUrl %>">
       <button>Update</button>
     </form>
   </body>
