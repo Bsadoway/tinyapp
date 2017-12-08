@@ -3,7 +3,7 @@ const PORT = process.env.PORT || 8080;
 const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session')
 const bcrypt = require('bcrypt');
-
+const db = require('./db');
 
 let app = express();
 app.use(bodyParser.urlencoded({
@@ -16,39 +16,12 @@ app.use(cookieSession({
 
 app.set('view engine', 'ejs');
 
-const urlDatabase = {
-  'b2xVn2': {
-    id: 'b2xVn2',
-    fullUrl: "http://www.lighthouselabs.ca",
-    userID: "userRandomID"
-  },
-  '9sm5xK': {
-    id: '9sm5xK',
-    fullUrl: "http://www.google.com",
-    userID: "user2RandomID"
-  }
-};
-
-const users = {
-  "userRandomID": {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: bcrypt.hashSync("purple", 11)
-  },
-  "user2RandomID": {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: bcrypt.hashSync("dishwasher", 11)
-  }
-}
-
-
 
 // GET Handlers
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
 app.get('/', (request, response) => {
-  if (users[request.session.userID]) {
+  if (db.users[request.session.userID]) {
     response.redirect('/urls');
   } else {
     response.redirect('/login');
@@ -58,28 +31,29 @@ app.get('/', (request, response) => {
 app.get('/urls', (request, response) => {
   const userID = request.session.userID;
   let varTemplates = {
-    urls: urlsForUser(request.session.userID),
-    user: users[userID]
+    urls: urlsForUser(userID),
+    user: db.users[userID]
   };
   response.render('urls_index', varTemplates);
 });
 
 app.get('/login', (request, response) => {
-  if (users[request.session.userID]) {
+  let varTemplates = {
+    urls: db.urlDatabase,
+    user: db.users[request.session.userID]
+  };
+
+  if (db.users[request.session.userID]) {
     response.redirect('/urls');
   } else {
-    let varTemplates = {
-      urls: urlDatabase,
-      user: users[request.session.userID]
-    };
     response.render('urls_login', varTemplates);
   }
 });
 
 app.get('/register', (request, response) => {
   let varTemplates = {
-    urls: urlDatabase,
-    user: users[request.session.userID]
+    urls: db.urlDatabase,
+    user: db.users[request.session.userID]
   };
 
   response.render('urls_register', varTemplates);
@@ -92,8 +66,8 @@ app.get('/urls.json', (request, response) => {
 app.get("/urls/new", (request, response) => {
   if (request.session.userID) {
     let varTemplates = {
-      urls: urlDatabase,
-      user: users[request.session.userID]
+      urls: db.urlDatabase,
+      user: db.users[request.session.userID]
     };
     response.render("urls_new", varTemplates);
   } else {
@@ -106,8 +80,8 @@ app.get('/urls/:id', (request, response) => {
   const userID = request.session.userID;
   if (userID) {
     let varTemplates = {
-      url: urlDatabase[request.params.id],
-      user: users[userID]
+      url: db.urlDatabase[request.params.id],
+      user: db.users[userID]
     };
     response.render('urls_show', varTemplates);
   } else {
@@ -117,7 +91,7 @@ app.get('/urls/:id', (request, response) => {
 
 app.get("/u/:shortURL", (request, response) => {
   //TODO fix for invalid url
-  let longURL = urlDatabase[request.params.shortURL].fullUrl;
+  let longURL = db.urlDatabase[request.params.shortURL].fullUrl;
   response.redirect(longURL);
 });
 // ---------------------------------------------------------------
@@ -134,7 +108,7 @@ app.post("/urls", (request, response) => {
     fullUrl: request.body.longURL,
     userID: request.session.userID
   }
-  urlDatabase[shortUrl] = newUrl;
+  db.urlDatabase[shortUrl] = newUrl;
 
   response.redirect(`/urls/${shortUrl}`);
 });
@@ -144,7 +118,7 @@ app.post('/login', (request, response) => {
   const password = request.body.password;
   const userID = getUserIDFromEmail(email);
 
-  if (checkEmail(email) && bcrypt.compareSync(password, users[userID].password) && password && email) {
+  if (userID && bcrypt.compareSync(password, db.users[userID].password) && password && email) {
     request.session.userID = userID;
     response.redirect('/urls');
     return;
@@ -162,8 +136,8 @@ app.post('/logout', (request, response) => {
 app.post('/urls/:id/update', (request, response) => {
   const id = request.params.id;
   const userID = request.session.userID;
-  if (userID === urlDatabase[id].userID) {
-    urlDatabase[id].fullUrl = request.body.new_URL;
+  if (userID === db.urlDatabase[id].userID) {
+    db.urlDatabase[id].fullUrl = request.body.new_URL;
     response.redirect('/urls');
   } else {
     response.statusCode = 401;
@@ -175,8 +149,8 @@ app.post('/urls/:id/delete', (request, response) => {
   //TODO add error checking
   const id = request.params.id;
   const userID = request.session.userID;
-  if (userID === urlDatabase[id].userID) {
-    delete urlDatabase[id];
+  if (userID === db.urlDatabase[id].userID) {
+    delete db.urlDatabase[id];
     response.redirect('/urls');
   } else {
     response.statusCode = 401;
@@ -194,21 +168,15 @@ app.post('/register', (request, response) => {
     response.send("Invalid email or password");
     return;
   }
-  if (checkEmail(email)) {
+  if (getUserIDFromEmail(email)) {
     response.statusCode = 400;
     response.send("Email already exists, did you forget your password?");
     return;
   }
 
-  const hashedPassword = bcrypt.hashSync(password, 11);
-  const user = {
-    userID: userID,
-    email: email,
-    password: hashedPassword
-  };
-  users[userID] = user;
+  db.users[userID] = createNewUser(userID, email, password);
 
-  response.session.userID = userID;
+  request.session.userID = userID;
   response.redirect('/urls');
 
 });
@@ -224,29 +192,30 @@ function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
 }
 
+function createNewUser(userID, email, password){
+  const hashedPassword = bcrypt.hashSync(password, 11);
+  const user = {
+    userID: userID,
+    email: email,
+    password: hashedPassword
+  };
+  return user;
+}
+
 function urlsForUser(id) {
   let userUrls = {};
-  for (var url in urlDatabase) {
-    if (urlDatabase[url].userID === id) {
-      userUrls[url] = urlDatabase[url];
+  for (var url in db.urlDatabase) {
+    if (db.urlDatabase[url].userID === id) {
+      userUrls[url] = db.urlDatabase[url];
     }
   }
   return userUrls;
 }
 
 function getUserIDFromEmail(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
+  for (let user in db.users) {
+    if (db.users[user].email === email) {
       return user;
-    }
-  }
-  return false;
-}
-
-function checkEmail(email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return true;
     }
   }
   return false;
