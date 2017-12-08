@@ -1,7 +1,7 @@
 const express = require('express');
 const PORT = process.env.PORT || 8080;
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session')
 const bcrypt = require('bcrypt');
 
 
@@ -9,7 +9,10 @@ let app = express();
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['superkey', 'superkey2'],
+}));
 
 app.set('view engine', 'ejs');
 
@@ -45,7 +48,7 @@ const users = {
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
 app.get('/', (request, response) => {
-  if (users[request.cookies.userID]) {
+  if (users[request.session.userID]) {
     response.redirect('/urls');
   } else {
     response.redirect('/login');
@@ -53,21 +56,21 @@ app.get('/', (request, response) => {
 });
 
 app.get('/urls', (request, response) => {
-  const userID = request.cookies.userID;
+  const userID = request.session.userID;
   let varTemplates = {
-    urls: urlsForUser(request.cookies.userID),
+    urls: urlsForUser(request.session.userID),
     user: users[userID]
   };
   response.render('urls_index', varTemplates);
 });
 
 app.get('/login', (request, response) => {
-  if (users[request.cookies.userID]) {
+  if (users[request.session.userID]) {
     response.redirect('/urls');
   } else {
     let varTemplates = {
       urls: urlDatabase,
-      user: users[request.cookies.userID]
+      user: users[request.session.userID]
     };
     response.render('urls_login', varTemplates);
   }
@@ -76,7 +79,7 @@ app.get('/login', (request, response) => {
 app.get('/register', (request, response) => {
   let varTemplates = {
     urls: urlDatabase,
-    user: users[request.cookies.userID]
+    user: users[request.session.userID]
   };
 
   response.render('urls_register', varTemplates);
@@ -87,10 +90,10 @@ app.get('/urls.json', (request, response) => {
 });
 
 app.get("/urls/new", (request, response) => {
-  if (request.cookies.userID) {
+  if (request.session.userID) {
     let varTemplates = {
       urls: urlDatabase,
-      user: users[request.cookies.userID]
+      user: users[request.session.userID]
     };
     response.render("urls_new", varTemplates);
   } else {
@@ -100,7 +103,7 @@ app.get("/urls/new", (request, response) => {
 
 app.get('/urls/:id', (request, response) => {
   //TODO fix for invalid params
-  const userID = request.cookies.userID;
+  const userID = request.session.userID;
   if (userID) {
     let varTemplates = {
       url: urlDatabase[request.params.id],
@@ -129,7 +132,7 @@ app.post("/urls", (request, response) => {
   const newUrl = {
     id: shortUrl,
     fullUrl: request.body.longURL,
-    userID: request.cookies.userID
+    userID: request.session.userID
   }
   urlDatabase[shortUrl] = newUrl;
 
@@ -142,7 +145,7 @@ app.post('/login', (request, response) => {
   const userID = getUserIDFromEmail(email);
 
   if (checkEmail(email) && bcrypt.compareSync(password, users[userID].password) && password && email) {
-    response.cookie('userID', userID);
+    request.session.userID = userID;
     response.redirect('/urls');
     return;
   }
@@ -152,13 +155,13 @@ app.post('/login', (request, response) => {
 });
 
 app.post('/logout', (request, response) => {
-  response.clearCookie('userID');
+  request.session = null;
   response.redirect('/urls');
 });
 
 app.post('/urls/:id/update', (request, response) => {
   const id = request.params.id;
-  const userID = request.cookies.userID;
+  const userID = request.session.userID;
   if (userID === urlDatabase[id].userID) {
     urlDatabase[id].fullUrl = request.body.new_URL;
     response.redirect('/urls');
@@ -171,7 +174,7 @@ app.post('/urls/:id/update', (request, response) => {
 app.post('/urls/:id/delete', (request, response) => {
   //TODO add error checking
   const id = request.params.id;
-  const userID = request.cookies.userID;
+  const userID = request.session.userID;
   if (userID === urlDatabase[id].userID) {
     delete urlDatabase[id];
     response.redirect('/urls');
@@ -205,7 +208,7 @@ app.post('/register', (request, response) => {
   };
   users[userID] = user;
 
-  response.cookie('userID', userID);
+  response.session.userID = userID;
   response.redirect('/urls');
 
 });
