@@ -2,6 +2,7 @@ const express = require('express');
 const PORT = process.env.PORT || 8080;
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser')
+const bcrypt = require('bcrypt');
 
 
 let app = express();
@@ -9,6 +10,7 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(cookieParser());
+
 app.set('view engine', 'ejs');
 
 const urlDatabase = {
@@ -28,14 +30,16 @@ const users = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple"
+    password: bcrypt.hashSync("purple", 11)
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher"
+    password: bcrypt.hashSync("dishwasher", 11)
   }
 }
+
+
 
 // GET Handlers
 // ---------------------------------------------------------------
@@ -137,7 +141,7 @@ app.post('/login', (request, response) => {
   const password = request.body.password;
   const userID = getUserIDFromEmail(email);
 
-  if (checkEmail(email) && users[userID].password === password && password && email) {
+  if (checkEmail(email) && bcrypt.compareSync(password, users[userID].password) && password && email) {
     response.cookie('userID', userID);
     response.redirect('/urls');
     return;
@@ -193,10 +197,11 @@ app.post('/register', (request, response) => {
     return;
   }
 
+  const hashedPassword = bcrypt.hashSync(password, 11);
   const user = {
     userID: userID,
     email: email,
-    password: password
+    password: hashedPassword
   };
   users[userID] = user;
 
@@ -230,15 +235,6 @@ function getUserIDFromEmail(email) {
   for (let user in users) {
     if (users[user].email === email) {
       return user;
-    }
-  }
-  return false;
-}
-
-function checkPassword(password) {
-  for (let user in users) {
-    if (users[user].password === password) {
-      return true;
     }
   }
   return false;
