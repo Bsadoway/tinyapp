@@ -4,12 +4,14 @@ const urlDatabase = {
   'b2xVn2': {
     id: 'b2xVn2',
     fullUrl: "http://www.lighthouselabs.ca",
-    userID: "userRandomID"
+    userID: "userRandomID",
+    createdDate: "Monday, January 19th, 2017, 3:12:50 PM"
   },
   '9sm5xK': {
     id: '9sm5xK',
     fullUrl: "http://www.google.com",
-    userID: "user2RandomID"
+    userID: "user2RandomID",
+    createdDate: "Sunday, January 18th, 2017, 12:12:50 PM"
   }
 };
 

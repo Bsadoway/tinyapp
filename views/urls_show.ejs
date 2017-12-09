@@ -10,7 +10,8 @@
     </header>
 
     <h2>Shortened URL: <%= url.id %></h2>
-    <form style="display:inline" method="POST" action="/urls/<%= url.id %>/update">
+    <p><small>Created Date: <%= url.createdDate %></small></p>
+    <form style="display:inline" method="POST" action="/urls/<%= url.id %>">
       <input name="new_URL" value="<%= url.fullUrl %>">
       <button>Update</button>
     </form>

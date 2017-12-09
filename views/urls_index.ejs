@@ -22,11 +22,17 @@
             <form style="display:inline" method="POST" action="/urls/<%= urls[url].id %>/delete">
               <button>Delete</button>
             </form>
+            <p><small>Created Date: <%= urls[url].createdDate %></small></p>            
       </div>
     <% } %>
+    <div>
+      <br>
+      <a href="/urls/new">Create</a>
+    </div>
   <% } else { %>
     <p>Please log in or register first</p>
   <% } %>
+
 </body>
 
 </html>

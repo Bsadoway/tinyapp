@@ -4,11 +4,14 @@ const bodyParser = require("body-parser");
 const cookieSession = require('cookie-session')
 const bcrypt = require('bcrypt');
 const db = require('./db');
+const dateFormat = require('dateformat');
+
 
 let app = express();
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+//TODO use process.env
 app.use(cookieSession({
   name: 'session',
   keys: ['superkey', 'superkey2'],
@@ -16,7 +19,7 @@ app.use(cookieSession({
 
 app.set('view engine', 'ejs');
 
-
+// ---------------------------------------------------------------
 // GET Handlers
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
@@ -51,9 +54,15 @@ app.get('/login', (request, response) => {
 });
 
 app.get('/register', (request, response) => {
+  const userID = request.session.userID;
+  if(userID){
+    response.redirect('/urls');
+    return;
+  }
+
   let varTemplates = {
     urls: db.urlDatabase,
-    user: db.users[request.session.userID]
+    user: db.users[userID]
   };
 
   response.render('urls_register', varTemplates);
@@ -76,11 +85,18 @@ app.get("/urls/new", (request, response) => {
 });
 
 app.get('/urls/:id', (request, response) => {
-  //TODO fix for invalid params
   const userID = request.session.userID;
-  if (userID) {
+  const shortUrl = request.params.id;
+
+  if (!db.urlDatabase[shortUrl]) {
+    response.statusCode = 404;
+    response.send("Error, url ID not found");
+    return;
+  }
+
+  if (userID === db.urlDatabase[shortUrl].userID) {
     let varTemplates = {
-      url: db.urlDatabase[request.params.id],
+      url: db.urlDatabase[shortUrl],
       user: db.users[userID]
     };
     response.render('urls_show', varTemplates);
@@ -89,28 +105,35 @@ app.get('/urls/:id', (request, response) => {
   }
 });
 
-app.get("/u/:shortURL", (request, response) => {
-  //TODO fix for invalid url
-  let longURL = db.urlDatabase[request.params.shortURL].fullUrl;
-  response.redirect(longURL);
+app.get("/u/:id", (request, response) => {
+  const url = db.urlDatabase[request.params.id];
+  if (url) {
+    const longURL = url.fullUrl;
+    response.redirect(longURL);
+  } else {
+    response.statusCode = 404;
+    response.send("Error, URL not found");
+  }
 });
 // ---------------------------------------------------------------
+// End of Get Handlers
+// ---------------------------------------------------------------
 
-
+// ---------------------------------------------------------------
 //POST Handlers
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
 app.post("/urls", (request, response) => {
-  //TODO add error checking for invalid shortURL
-  let shortUrl = generateRandomString();
-  const newUrl = {
-    id: shortUrl,
-    fullUrl: request.body.longURL,
-    userID: request.session.userID
+  const shortUrl = generateRandomString();
+  const fullUrl = request.body.longURL;
+  const userID = request.session.userID;
+  if (userID) {
+    db.urlDatabase[shortUrl] = createNewUrl(shortUrl, fullUrl, userID);
+    response.redirect(`/urls/${shortUrl}`);
+  } else {
+    response.statusCode = 403;
+    response.send("Forbidden to post to this link");
   }
-  db.urlDatabase[shortUrl] = newUrl;
-
-  response.redirect(`/urls/${shortUrl}`);
 });
 
 app.post('/login', (request, response) => {
@@ -133,11 +156,18 @@ app.post('/logout', (request, response) => {
   response.redirect('/urls');
 });
 
-app.post('/urls/:id/update', (request, response) => {
-  const id = request.params.id;
+app.post('/urls/:id', (request, response) => {
+  const shortUrl = request.params.id;
   const userID = request.session.userID;
-  if (userID === db.urlDatabase[id].userID) {
-    db.urlDatabase[id].fullUrl = request.body.new_URL;
+
+  if(!db.urlDatabase[shortUrl]){
+    response.statusCode = 404;
+    response.send("Error, URL does not exist");
+    return;
+  }
+
+  if (userID === db.urlDatabase[shortUrl].userID) {
+    db.urlDatabase[shortUrl].fullUrl = request.body.new_URL;
     response.redirect('/urls');
   } else {
     response.statusCode = 401;
@@ -146,11 +176,17 @@ app.post('/urls/:id/update', (request, response) => {
 });
 
 app.post('/urls/:id/delete', (request, response) => {
-  //TODO add error checking
-  const id = request.params.id;
+  const shortUrl = request.params.id;
   const userID = request.session.userID;
-  if (userID === db.urlDatabase[id].userID) {
-    delete db.urlDatabase[id];
+
+  if(!db.urlDatabase[shortUrl]){
+    response.statusCode = 404;
+    response.send("Error, URL does not exist");
+    return;
+  }
+
+  if (userID === db.urlDatabase[shortUrl].userID) {
+    delete db.urlDatabase[shortUrl];
     response.redirect('/urls');
   } else {
     response.statusCode = 401;
@@ -181,18 +217,23 @@ app.post('/register', (request, response) => {
 
 });
 // ---------------------------------------------------------------
+// End of Post Handlers
+// ---------------------------------------------------------------
 
 
 app.listen(PORT, () => {
   console.log(`App is listening on PORT: ${PORT}!`);
 });
 
+// ---------------------------------------------------------------
+// Functions
+// ---------------------------------------------------------------
 
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
 }
 
-function createNewUser(userID, email, password){
+function createNewUser(userID, email, password) {
   const hashedPassword = bcrypt.hashSync(password, 11);
   const user = {
     userID: userID,
@@ -201,6 +242,18 @@ function createNewUser(userID, email, password){
   };
   return user;
 }
+
+function createNewUrl(shortUrl, fullUrl, userID) {
+  var date = Date.now();
+  const newUrl = {
+    id: shortUrl,
+    fullUrl: fullUrl,
+    userID: userID,
+    createdDate: dateFormat(date, "dddd, mmmm dS, yyyy, h:MM:ss TT")
+  }
+  return newUrl;
+}
+
 
 function urlsForUser(id) {
   let userUrls = {};
