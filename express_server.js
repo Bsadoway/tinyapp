@@ -11,7 +11,8 @@ let app = express();
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-//TODO use process.env
+
+//TODO use process.env for keys
 app.use(cookieSession({
   name: 'session',
   keys: ['superkey', 'superkey2'],
@@ -55,7 +56,7 @@ app.get('/login', (request, response) => {
 
 app.get('/register', (request, response) => {
   const userID = request.session.userID;
-  if(userID){
+  if (userID) {
     response.redirect('/urls');
     return;
   }
@@ -127,6 +128,7 @@ app.post("/urls", (request, response) => {
   const shortUrl = generateRandomString();
   const fullUrl = request.body.longURL;
   const userID = request.session.userID;
+
   if (userID) {
     db.urlDatabase[shortUrl] = createNewUrl(shortUrl, fullUrl, userID);
     response.redirect(`/urls/${shortUrl}`);
@@ -160,7 +162,7 @@ app.post('/urls/:id', (request, response) => {
   const shortUrl = request.params.id;
   const userID = request.session.userID;
 
-  if(!db.urlDatabase[shortUrl]){
+  if (!db.urlDatabase[shortUrl]) {
     response.statusCode = 404;
     response.send("Error, URL does not exist");
     return;
@@ -179,7 +181,7 @@ app.post('/urls/:id/delete', (request, response) => {
   const shortUrl = request.params.id;
   const userID = request.session.userID;
 
-  if(!db.urlDatabase[shortUrl]){
+  if (!db.urlDatabase[shortUrl]) {
     response.statusCode = 404;
     response.send("Error, URL does not exist");
     return;
@@ -247,7 +249,7 @@ function createNewUrl(shortUrl, fullUrl, userID) {
   var date = Date.now();
   const newUrl = {
     id: shortUrl,
-    fullUrl: fullUrl,
+    fullUrl: appendHTTP(fullUrl),
     userID: userID,
     createdDate: dateFormat(date, "dddd, mmmm dS, yyyy, h:MM:ss TT")
   }
@@ -272,4 +274,13 @@ function getUserIDFromEmail(email) {
     }
   }
   return false;
+}
+
+function appendHTTP(http) {
+  const prefix = 'http://';
+
+  if (!/^https?:\/\//i.test(http)) {
+    http = prefix + http;
+  }
+  return http;
 }
