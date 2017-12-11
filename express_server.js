@@ -20,10 +20,6 @@ app.use(cookieSession({
 
 app.set('view engine', 'ejs');
 
-// ---------------------------------------------------------------
-// GET Handlers
-// ---------------------------------------------------------------
-// ---------------------------------------------------------------
 app.get('/', (request, response) => {
   if (db.users[request.session.userID]) {
     response.redirect('/urls');
@@ -116,18 +112,17 @@ app.get("/u/:id", (request, response) => {
     response.send("Error, URL not found");
   }
 });
-// ---------------------------------------------------------------
-// End of Get Handlers
-// ---------------------------------------------------------------
 
-// ---------------------------------------------------------------
-//POST Handlers
-// ---------------------------------------------------------------
-// ---------------------------------------------------------------
 app.post("/urls", (request, response) => {
   const shortUrl = generateRandomString();
   const fullUrl = request.body.longURL;
   const userID = request.session.userID;
+
+  if(!fullUrl){
+    response.statusCode = 403;
+    response.send("Error, url must be valid");
+    return;
+  }
 
   if (userID) {
     db.urlDatabase[shortUrl] = createNewUrl(shortUrl, fullUrl, userID);
@@ -218,18 +213,11 @@ app.post('/register', (request, response) => {
   response.redirect('/urls');
 
 });
-// ---------------------------------------------------------------
-// End of Post Handlers
-// ---------------------------------------------------------------
 
 
 app.listen(PORT, () => {
   console.log(`App is listening on PORT: ${PORT}!`);
 });
-
-// ---------------------------------------------------------------
-// Functions
-// ---------------------------------------------------------------
 
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
