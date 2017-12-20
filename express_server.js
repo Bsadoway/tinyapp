@@ -234,7 +234,7 @@ function createNewUser(userID, email, password) {
 }
 
 function createNewUrl(shortUrl, fullUrl, userID) {
-  var date = Date.now();
+  const date = Date.now();
   const newUrl = {
     id: shortUrl,
     fullUrl: appendHTTP(fullUrl),
@@ -247,7 +247,7 @@ function createNewUrl(shortUrl, fullUrl, userID) {
 
 function urlsForUser(id) {
   let userUrls = {};
-  for (var url in db.urlDatabase) {
+  for (let url in db.urlDatabase) {
     if (db.urlDatabase[url].userID === id) {
       userUrls[url] = db.urlDatabase[url];
     }
